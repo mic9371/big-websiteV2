@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Block Clicker — Mini Clicker</title>
+<a href="../index.html" class="btn">Back</a>
+<style>
+  :root{
+    --bg:#0f1724; --card:#0b1220; --accent:#f59e0b; --muted:#9aa7bd;
+    --glass: rgba(255,255,255,0.03);
+  }
+  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
+  body{margin:0;min-height:100vh;background:linear-gradient(180deg,#071029 0%, #071a3a 70%);color:#e6eef9;display:flex;align-items:center;justify-content:center;padding:24px}
+  .wrap{width:100%;max-width:980px;display:grid;grid-template-columns:1fr 360px;gap:20px}
+  header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  h1{font-size:20px;margin:0}
+  .main{
+    background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));
+    border-radius:12px;padding:18px;box-shadow:0 6px 30px rgba(2,6,23,0.6);
+  }
+  .big-button{
+    background:linear-gradient(180deg,#ffd87a 0%, #f2b400 100%);border:none;border-radius:14px;padding:28px 20px;font-size:20px;color:#111;cursor:pointer;width:100%;
+    box-shadow:0 10px 30px rgba(242,180,0,0.25), inset 0 -6px 10px rgba(0,0,0,0.12);
+    transition:transform .08s ease, box-shadow .08s ease;
+  }
+  .big-button:active{transform:scale(.98)}
+  .stats{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap}
+  .stat{background:var(--glass);padding:10px;border-radius:10px;min-width:140px}
+  .sidebar{
+    background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));
+    border-radius:12px;padding:14px;box-shadow:0 6px 30px rgba(2,6,23,0.6);
+    height:fit-content;
+  }
+  .list{display:flex;flex-direction:column;gap:10px;max-height:66vh;overflow:auto;padding-right:6px}
+  .upgrade{
+    display:flex;align-items:center;gap:8px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);
+  }
+  .upgrade .buy{margin-left:auto;background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:var(--accent);cursor:pointer}
+  .upgrade .buy:disabled{opacity:.45;cursor:not-allowed}
+  .small{font-size:13px;color:var(--muted)}
+  .footer{grid-column:1/-1;margin-top:8px;display:flex;gap:8px;align-items:center}
+  .controls{display:flex;gap:8px}
+  .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer}
+  .toast{position:fixed;right:18px;bottom:18px;background:#0d1729;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 8px 30px rgba(2,6,23,0.6);display:none}
+  .spark{position:absolute;pointer-events:none;transform:translate(-50%,-50%);font-size:14px;opacity:1;transition:transform 900ms ease-out, opacity 900ms ease-out}
+  @media (max-width:900px){.wrap{grid-template-columns:1fr;}.sidebar{order:2}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Clicker Game</h1>
+    <div class="small">Stand-alone HTML/CSS/JS • Save: localStorage</div>
+  </header>
+
+  <main class="main">
+    <div style="position:relative;">
+      <button id="clickBtn" class="big-button">🥔 Click.<br><span class="small" id="perClickText">+1 per click</span></button>
+      <div id="sparks"></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="small">Clicks</div>
+        <div style="font-weight:700;font-size:20px" id="blocks">0</div>
+      </div>
+      <div class="stat">
+        <div class="small">Clicks / sec</div>
+        <div style="font-weight:700;font-size:20px" id="bps">0</div>
+      </div>
+      <div class="stat">
+        <div class="small">Total Clicks</div>
+        <div style="font-weight:700;font-size:20px" id="clicks">0</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="controls">
+        <button id="saveBtn" class="btn">Save</button>
+        <button id="exportBtn" class="btn">Export Save</button>
+        <button id="importBtn" class="btn">Import Save</button>
+        <button id="resetBtn" class="btn">Reset</button>
+      </div>
+      <div style="margin-left:auto" class="small">Tip: Press the block or use key <strong>Spacebar</strong></div>
+    </div>
+  </main>
+
+  <aside class="sidebar">
+    <h3 style="margin-top:0">Upgrades</h3>
+    <div class="list" id="upgradesList"></div>
+  </aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========== GAME STATE ========== */
+const basePerClick = 1;
+const SAVE_KEY = 'blockclicker_save_v1';
+
+const game = {
+  blocks: 0,
+  totalClicks: 0,
+  perClick: basePerClick,
+  bps: 0, // blocks per second from producers
+  upgrades: [
+    {id:'click1', name:'Better Pick', desc:'+10 click per click', baseCost:1500, costMult:1.5, level:0, type:'click', value:10},
+    {id:'auto1', name:'Miner', desc:'Generates 20 clicks / sec', baseCost:500, costMult:1.17, level:0, type:'auto', value:20},
+    {id:'auto2', name:'Drill', desc:'Generates 100 clicks / sec', baseCost:5000, costMult:1.18, level:0, type:'auto', value:100},
+    {id:'click2', name:'Reinforced Glove', desc:'100x per click (multiplicative)', baseCost:100000, costMult:5, level:0, type:'mult_click', value:100}
+  ],
+  lastTick: Date.now(),
+};
+
+/* ========== UTIL ========== */
+const formatNum = n => {
+  if (n < 1000) return Math.floor(n);
+  const units = ['k','M','B','T'];
+  let u = -1;
+  let x = n;
+  while (x >= 1000 && u < units.length-1){ x /= 1000; u++; }
+  return x.toFixed(2) + (u>=0 ? units[u] : '');
+};
+
+const toast = (t) => {
+  const el = document.getElementById('toast');
+  el.textContent = t;
+  el.style.display = 'block';
+  setTimeout(()=> el.style.display = 'none', 2000);
+};
+
+/* ========== SAVE / LOAD ========== */
+function saveGame(){
+  localStorage.setItem(SAVE_KEY, JSON.stringify({
+    blocks: game.blocks,
+    totalClicks: game.totalClicks,
+    upgrades: game.upgrades.map(u => ({id: u.id, level: u.level}))
+  }));
+  toast('Saved');
+}
+function loadGame(){
+  const s = localStorage.getItem(SAVE_KEY);
+  if (!s) return;
+  try{
+    const obj = JSON.parse(s);
+    if (obj.upgrades && Array.isArray(obj.upgrades)) {
+      for (const savedU of obj.upgrades) {
+        const baseU = game.upgrades.find(u => u.id === savedU.id);
+        if (baseU) baseU.level = savedU.level || 0;
+      }
+    }
+    game.blocks = obj.blocks || 0;
+    game.totalClicks = obj.totalClicks || 0;
+  }catch(e){ console.warn('Load failed', e) }
+  recalcPerClick();
+  recalcBPS();
+}
+
+/* ========== GAME MECHANICS ========== */
+function getUpgradeCost(u){
+  // cost = baseCost * (costMult ^ level)
+  return Math.floor(u.baseCost * Math.pow(u.costMult, u.level));
+}
+function canAfford(cost){ return game.blocks >= cost; }
+
+function buyUpgrade(id){
+  const u = game.upgrades.find(x=>x.id===id);
+  if (!u) return;
+  const cost = getUpgradeCost(u);
+  if (!canAfford(cost)) { toast("Can't afford"); return; }
+  game.blocks -= cost;
+  u.level++;
+  applyUpgradeEffects(u);
+  renderUpgrades();
+  renderStats();
+}
+
+function recalcPerClick() {
+  // Additive click upgrades
+  let additive = 0;
+  for (const u of game.upgrades) {
+    if (u.type === 'click') additive += u.level * u.value;
+  }
+  // multiplicative upgrades (like reinforced glove)
+  let mult = 1;
+  for (const u of game.upgrades) {
+    if (u.type === 'mult_click' && u.level > 0) {
+      mult *= Math.pow(u.value, u.level);
+    }
+  }
+  game.perClick = (basePerClick + additive) * mult;
+}
+
+function recalcBPS(){
+  let tot = 0;
+  for (const u of game.upgrades){
+    if (u.type === 'auto' && u.level > 0){
+      tot += u.level * u.value;
+    }
+  }
+  game.bps = tot;
+}
+
+function applyUpgradeEffects(u){
+  recalcPerClick();
+  recalcBPS();
+}
+
+/* ========== UI ========== */
+const blocksEl = document.getElementById('blocks');
+const bpsEl = document.getElementById('bps');
+const perClickText = document.getElementById('perClickText');
+const clicksEl = document.getElementById('clicks');
+const upgradesList = document.getElementById('upgradesList');
+const sparks = document.getElementById('sparks');
+
+function renderStats(){
+  blocksEl.textContent = formatNum(game.blocks);
+  bpsEl.textContent = formatNum(game.bps);
+  perClickText.textContent = `+${(Math.round(game.perClick*100)/100)} per click`;
+  clicksEl.textContent = formatNum(game.totalClicks);
+}
+
+function renderUpgrades(){
+  upgradesList.innerHTML = '';
+  for (const u of game.upgrades){
+    const cost = getUpgradeCost(u);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'upgrade';
+    wrapper.innerHTML = `
+      <div>
+        <div style="font-weight:700">${u.name} <span class="small">x${u.level>0?u.level:''}</span></div>
+        <div class="small">${u.desc}</div>
+      </div>
+      <div style="min-width:80px;text-align:right">
+        <div class="small">Cost</div>
+        <div style="font-weight:700">${formatNum(cost)}</div>
+      </div>
+    `;
+    const buy = document.createElement('button');
+    buy.className = 'buy';
+    buy.textContent = 'Buy';
+    buy.disabled = !canAfford(cost);
+    buy.addEventListener('click', ()=> buyUpgrade(u.id));
+    wrapper.appendChild(buy);
+    upgradesList.appendChild(wrapper);
+  }
+}
+
+/* ========== CLICK HANDLING ========== */
+function makeSpark(text,x,y){
+  const s = document.createElement('div');
+  s.className = 'spark';
+  s.style.left = (x + window.pageXOffset) + 'px';
+  s.style.top = (y + window.pageYOffset) + 'px';
+  s.textContent = text;
+  sparks.appendChild(s);
+  // animate
+  requestAnimationFrame(()=> {
+    s.style.transform = 'translate(-50%,-120%) scale(1.1)';
+    s.style.opacity = 0;
+  });
+  setTimeout(()=> s.remove(), 900);
+}
+
+const clickBtn = document.getElementById('clickBtn');
+clickBtn.addEventListener('click', clickBlock);
+document.addEventListener('keydown', (e)=>{
+  if (e.code === 'Space'){ e.preventDefault(); clickBlock(); }
+});
+
+function clickBlock(){
+  const gain = game.perClick;
+  game.blocks += gain;
+  game.totalClicks++;
+  renderStats();
+  // visual spark at button center
+  const rect = clickBtn.getBoundingClientRect();
+  makeSpark('+' + (Math.round(gain*100)/100), rect.left + rect.width/2 - document.body.getBoundingClientRect().left, rect.top + rect.height/2 - document.body.getBoundingClientRect().top);
+  renderUpgrades();
+}
+
+/* ========== TICK ========== */
+function tick(){
+  const now = Date.now();
+  const dt = (now - game.lastTick) / 1000.0;
+  game.lastTick = now;
+  // increment by bps * dt
+  if (game.bps > 0){
+    game.blocks += game.bps * dt;
+  }
+  renderStats();
+  renderUpgrades();
+}
+
+/* ========== EXPORT / IMPORT / RESET ========== */
+document.getElementById('saveBtn').addEventListener('click', saveGame);
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const data = JSON.stringify({
+    blocks: game.blocks,
+    totalClicks: game.totalClicks,
+    upgrades: game.upgrades.map(u => ({id: u.id, level: u.level}))
+  });
+  navigator.clipboard?.writeText(data).then(()=> toast('Save copied to clipboard'));
+});
+document.getElementById('importBtn').addEventListener('click', async ()=>{
+  const json = prompt('Paste save JSON here:');
+  if (!json) return;
+  try{
+    const obj = JSON.parse(json);
+    if (obj.upgrades && Array.isArray(obj.upgrades)) {
+      for (const savedU of obj.upgrades) {
+        const baseU = game.upgrades.find(u => u.id === savedU.id);
+        if (baseU) baseU.level = savedU.level || 0;
+      }
+    }
+    game.blocks = obj.blocks || 0;
+    game.totalClicks = obj.totalClicks || 0;
+    recalcPerClick();
+    recalcBPS();
+    renderStats();
+    renderUpgrades();
+    toast('Imported');
+  }catch(e){ toast('Invalid JSON'); }
+});
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if (!confirm('Reset your save?')) return;
+  localStorage.removeItem(SAVE_KEY);
+  // reset values keep upgrades structure
+  game.blocks = 0;
+  game.totalClicks = 0;
+  for (const u of game.upgrades) u.level = 0;
+  recalcPerClick();
+  recalcBPS();
+  renderStats();
+  renderUpgrades();
+});
+
+/* ========== INIT ========== */
+loadGame();
+recalcPerClick();
+recalcBPS();
+renderStats();
+renderUpgrades();
+
+// game loop
+setInterval(tick, 1000/10); // 10 FPS tick for smoothness
+
+// autosave every 10s
+setInterval(saveGame, 10000);
+
+// save last tick time on blur
+window.addEventListener('blur', saveGame);
+
+// small friendly message
+console.log('Block Clicker loaded — have fun!');
+</script>
+</body>
+</html>
