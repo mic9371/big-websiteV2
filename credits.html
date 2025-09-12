@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="home.css" />
+  <style>
+    .container {
+      flex-direction: column;
+      max-width: 600px;
+      margin: 30px auto;
+      align-items: center; /* centers flex items horizontally */
+    }
+  
+    /* Center text inside each announcement */
+    .announcement {
+      cursor: default;
+      margin-bottom: 20px;
+      text-align: center; /* center text */
+      width: 100%; /* full container width */
+      max-width: 600px;
+    }
+
+    .credits-header {
+    font-family: 'Playfair Display', serif;
+    font-size: 2em;
+    margin-bottom: 8px;
+    font-weight: 900;
+    font-style: normal;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+  }
+  
+    .announcement-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5em;
+    margin-bottom: 8px;
+      font-weight: 700;
+    }
+  
+    .announcement-body {
+      font-size: 1.25em; /* base size */
+      font-family: 'Playfair Display', serif;
+    }
+  </style>
+</head>
+<body>
+
+<ul>
+    <li><a style="margin-left: 5px;" class="active" href="index.html">Home</a></li>
+    <li><a href="announcements/globalannouncements.html">Announcements</a></li>
+    <li><a href="upcoming/index.html">Upcoming</a></li>
+    <li><a href="mic/indexmic.html">Mic's</a></li>
+    <li><a href="theo/theoindex.html">Theo's</a></li>
+    <li style="float: right;"><a href="https://github.com/mic9371/mic9371.github.io" target="_blank"><img src="assets/github.png" style="height: 25px; color: white;" alt=""></a></li>
+</ul>
+
+  <div class="container">
+    <div class="announcement">
+      <div class="credits-header">Credits</div>
+      <div class="announcement-title">Developers</div>
+      <div class="announcement-body">Mic9371</div>
+      <div class="announcement-body">Theo9371</div>
+    </div>
+
+    <br>
+
+    <div class="announcement">
+      <div class="announcement-title">Credits</div>
+      <div class="announcement-body">Theo9371</div>
+    </div>
+
+    <br>
+
+    <div class="announcement">
+      <div class="announcement-title">Announcement & Upcoming Pages</div>
+      <div class="announcement-body">Theo9371</div>
+    </div>
+
+    <br>
+
+    <div class="announcement">
+      <div class="announcement-title">Icons</div>
+      <div class="announcement-body">Mic9371</div>
+    </div>
+  </div>
+
+</body>
+</html>
