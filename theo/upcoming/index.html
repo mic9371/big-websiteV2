@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<ul>
+    <li><a style="margin-left: 5px;" class="active" href="../theoindex.html">Back</a></li>
+    <li><a href="../announcements/index.html">Announcements</a></li>
+    <li><a href="../portfolio.html">Portfolio</a></li>
+    <li style="float: right;"><a href="https://github.com/mic9371/big-website" target="_blank"><img src="assets/github.png" style="height: 25px; color: white;" alt=""></a></li>
+</ul>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Announcements</title>
+  <link rel="stylesheet" href="home.css" />
+</head>
+<body>
+
+  <div style="display: flex; justify-content: center;">
+    <h1 style="font-size: 42px; font-family: inter-bold; margin-top: 60px;">Welcome to Theo's upcoming events!</h1>
+</div>
+
+  <div id="announcement-container"></div>
+
+  <script>
+    // Your event data — date/time in NY time
+    // { title: "MAITENANCE/COMMUNITYEVENT/UPDATE", date: "MM/DD/DD (8/8/2025)", time: "2:36 PM OR 14:36 PM", description: "EVENT DESCRIPTION" }
+    const announcements = [
+      
+    ];
+  
+    // Sort announcements by datetime ascending (oldest last)
+    announcements.sort((a, b) => {
+      const nyTimeZone = "America/New_York";
+  
+      function getDateTimeObj(item) {
+        return new Date(
+          new Date(`${item.date} ${item.time}`).toLocaleString("en-US", { timeZone: nyTimeZone })
+        );
+      }
+  
+      return getDateTimeObj(b) - getDateTimeObj(a);
+    });
+  
+    const container = document.getElementById("announcement-container");
+  
+    // Convert NY date/time to visitor local time string
+    function convertNYtoLocal(dateStr, timeStr) {
+      const nyTimeZone = "America/New_York";
+      const nyDateTimeString = `${dateStr} ${timeStr}`;
+      const nyDate = new Date(
+        new Date(nyDateTimeString).toLocaleString("en-US", { timeZone: nyTimeZone })
+      );
+      return nyDate.toLocaleString([], {
+        dateStyle: "medium",
+        timeStyle: "short"
+      });
+    }
+  
+    // Generate announcement elements
+    announcements.forEach(({ title, date, time, description }) => {
+      const localTimeStr = convertNYtoLocal(date, time);
+  
+      const ann = document.createElement("div");
+      ann.classList.add("announcement");
+  
+      ann.innerHTML = `
+        <div class="announcement-header">
+          <span class="announcement-title">${title}</span>
+          <span class="announcement-time">${localTimeStr}</span>
+        </div>
+        <div class="announcement-body">${description}</div>
+      `;
+  
+      container.appendChild(ann);
+    });
+  </script>
+  
+
+</body>
+</html>
